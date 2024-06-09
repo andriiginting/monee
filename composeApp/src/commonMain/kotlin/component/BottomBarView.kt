@@ -1,6 +1,5 @@
 package component
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
@@ -11,25 +10,24 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemColors
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.graphics.vector.ImageVector
-import style.surfaceContainerDark
-import style.surfaceContainerLight
+import moe.tlaster.precompose.navigation.Navigator
 
 @Composable
-fun BottomBarView(
-    onSelectedItem: (BottomNavigationItem) -> Unit
+internal fun BottomBarView(
+    navigator: Navigator,
+    menus: List<BottomNavigationItem>,
 ) {
-    var navigationSelectedItem by remember { mutableStateOf(0) }
-    val menus = BottomNavigationItem.bottomNavigationItems()
-
     NavigationBar(
-        containerColor = if (isSystemInDarkTheme()) surfaceContainerDark else surfaceContainerLight
+        containerColor = MaterialTheme.colorScheme.surface,
     ) {
-        menus.forEachIndexed { index, bottomNavigationItem ->
+        menus.forEachIndexed { _, bottomNavigationItem ->
+
+            val currentDestination =
+                navigator.currentEntry.collectAsState(null).value?.route?.route
+            val isSelected = bottomNavigationItem.route == currentDestination
+
             NavigationBarItem(
                 colors = NavigationBarItemColors(
                     selectedIconColor = MaterialTheme.colorScheme.primaryContainer,
@@ -40,38 +38,31 @@ fun BottomBarView(
                     unselectedIconColor = MaterialTheme.colorScheme.primaryContainer,
                     unselectedTextColor = MaterialTheme.colorScheme.primaryContainer
                 ),
-                selected = navigationSelectedItem == index,
+                selected = isSelected,
                 icon = {
                     Icon(
-                        bottomNavigationItem.icon,
-                        contentDescription = bottomNavigationItem.label
+                        bottomNavigationItem.icon, contentDescription = bottomNavigationItem.label
                     )
-                },
-                label = {
+                }, label = {
                     Text(bottomNavigationItem.label)
-                },
-                onClick = {
-                    navigationSelectedItem = index
-                    onSelectedItem.invoke(menus[navigationSelectedItem])
-                }
-            )
+                }, onClick = {
+                    if (bottomNavigationItem.route != currentDestination) {
+                        navigator.navigate(route = bottomNavigationItem.route)
+                    }
+                })
         }
     }
 
 }
 
 data class BottomNavigationItem(
-    val label: String,
-    val icon: ImageVector = Icons.Filled.Home,
-    val route: String = ""
+    val label: String, val icon: ImageVector = Icons.Filled.Home, val route: String = ""
 ) {
     companion object {
         fun bottomNavigationItems(): List<BottomNavigationItem> {
             return listOf(
                 BottomNavigationItem(
-                    label = "Home",
-                    icon = Icons.Filled.Home,
-                    route = MainScreen.Home.route
+                    label = "Home", icon = Icons.Filled.Home, route = MainScreen.Home.route
                 ),
                 BottomNavigationItem(
                     label = "History",
@@ -84,6 +75,6 @@ data class BottomNavigationItem(
 }
 
 sealed class MainScreen(val route: String) {
-    data object Home : MainScreen("home")
-    data object History : MainScreen("history")
+    data object Home : MainScreen("/home")
+    data object History : MainScreen("/history")
 }

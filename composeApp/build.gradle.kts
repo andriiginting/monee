@@ -42,6 +42,11 @@ kotlin {
             implementation(compose.material3)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
+
+            api(compose.foundation)
+            api(compose.animation)
+            api(libs.precompose)
+            api(libs.precompose.viewmodel)
         }
     }
 }
@@ -85,5 +90,6 @@ android {
 dependencies {
     implementation(libs.androidx.ui.text.google.fonts)
     implementation(libs.androidx.material3.android)
+    implementation(libs.androidx.navigation.runtime.ktx)
 }
 
