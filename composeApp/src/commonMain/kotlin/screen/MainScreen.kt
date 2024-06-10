@@ -1,5 +1,7 @@
 package screen
 
+import androidx.compose.foundation.background
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import moe.tlaster.precompose.navigation.NavHost
@@ -13,13 +15,14 @@ internal fun MainHostNav() {
     val navigator = rememberNavigator()
     NavHost(
         navigator = navigator,
+        modifier = Modifier.background(MaterialTheme.colorScheme.surface),
         navTransition = NavTransition(),
         initialRoute = "/home",
     ) {
         scene(
             route = "/home",
         ) {
-            HomeScreen(Modifier)
+            HomeScreen()
         }
 
         scene(
