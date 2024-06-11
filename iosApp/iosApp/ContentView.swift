@@ -10,11 +10,29 @@ struct ComposeView: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
 }
 
-struct ContentView: View {
+struct ColorStatusBarView: View {
+    @Binding var isDarkMode: Bool
+
     var body: some View {
-        ComposeView()
-                .ignoresSafeArea()
+        let colorStatusBarDark = Color(UIColor(rgb: 0xFF11131A))
+        let colorStatusBarLight = Color(UIColor(rgb: 0xFFF9F9FF))
+        let statusBarColor = isDarkMode ? colorStatusBarDark : colorStatusBarLight
+
+        return statusBarColor
+            .ignoresSafeArea(.all)
     }
+}
+
+struct ContentView: View {
+    @Binding var isDarkMode: Bool
+        
+        var body: some View {
+            ZStack {
+                ColorStatusBarView(isDarkMode: $isDarkMode)
+                ComposeView()
+            }
+            .ignoresSafeArea(.all, edges: .bottom) // Compose has own keyboard handler
+        }
 }
 
 
