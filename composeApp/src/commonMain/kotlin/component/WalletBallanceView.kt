@@ -30,10 +30,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.BalanceData
+import data.CurrencyType
+import moe.tlaster.precompose.navigation.Navigator
+import moneyproject.composeapp.generated.resources.Res
+import moneyproject.composeapp.generated.resources.visibility_off_ic
+import moneyproject.composeapp.generated.resources.visibility_on_ic
+import org.jetbrains.compose.resources.vectorResource
 
 @Composable
 internal fun WalletBalanceView(
-    balances: BalanceData
+    balances: BalanceData,
+    navigator: Navigator
 ) {
     ElevatedCard(
         shape = RoundedCornerShape(16.dp),
@@ -65,10 +72,20 @@ internal fun WalletBalanceView(
                     modifier = Modifier.fillMaxHeight(),
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    items(1) {
+                        PocketCardView(
+                            CardData(
+                                "PayPay",
+                                2000000000,
+                                CurrencyType.JPY
+                            )
+                        )
+                    }
+
                     item {
-                        AddCardView()
+                        AddCardView(navigator)
                     }
                 }
             }
@@ -103,7 +120,11 @@ private fun TotalBalanceView(balances: BalanceData) {
             }
         ) {
             Icon(
-                rememberVectorPainter(image = Icons.Filled.Favorite),
+                rememberVectorPainter(
+                    image = if (balances.isVisibleToUser) vectorResource(Res.drawable.visibility_on_ic) else vectorResource(
+                        Res.drawable.visibility_off_ic
+                    )
+                ),
                 contentDescription = Icons.Filled.Favorite.name,
                 tint = Color.White
             )
@@ -112,5 +133,5 @@ private fun TotalBalanceView(balances: BalanceData) {
 }
 
 @Composable
-private fun getInnerCardColor(): Color =
+internal fun getInnerCardColor(): Color =
     if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceContainer else Color.White

@@ -1,4 +1,4 @@
-package screen.history
+package screen.home
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -9,24 +9,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import component.RoundedRectangleChip
-import data.getAllHistoriesDate
-import moe.tlaster.precompose.navigation.Navigator
+import component.TextWithEmojiCard
 
 @Composable
-internal fun HistoryScreen(navigator: Navigator) {
+internal fun ExpenseBillsSectionView() {
     Column {
         Text(
-            modifier = Modifier.padding(top = 16.dp, start = 16.dp),
-            text = "Expenses History",
+            text = "Expenses and Bills",
             color = MaterialTheme.colorScheme.inverseSurface,
             fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
         )
 
-        RoundedRectangleChip(
-            dates = getAllHistoriesDate()
-        ) { index ->
+        FilterViews() {
+
+        }
+
+        TextWithEmojiCard("Create Pocket", Modifier) {
 
         }
     }

@@ -13,9 +13,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import moe.tlaster.precompose.navigation.NavOptions
+import moe.tlaster.precompose.navigation.Navigator
 
 @Composable
-internal fun AddCardView() {
+internal fun AddCardView(navigator: Navigator) {
     Card {
         Card(
             shape = RoundedCornerShape(16.dp),
@@ -27,7 +29,10 @@ internal fun AddCardView() {
             ),
             modifier = Modifier.height(65.dp).width(65.dp),
             onClick = {
-
+                navigator.navigate(
+                    navigation.Navigator.PERSONALIZE_CARD.route,
+                    NavOptions(launchSingleTop = true)
+                )
             }
         ) {
             Text(

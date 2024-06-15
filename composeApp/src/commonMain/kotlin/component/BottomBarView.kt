@@ -1,8 +1,5 @@
 package component
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -11,8 +8,12 @@ import androidx.compose.material3.NavigationBarItemColors
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.graphics.vector.ImageVector
 import moe.tlaster.precompose.navigation.Navigator
+import moneyproject.composeapp.generated.resources.Res
+import moneyproject.composeapp.generated.resources.home_ic
+import moneyproject.composeapp.generated.resources.transaction_ic
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
 
 @Composable
 internal fun BottomBarView(
@@ -41,7 +42,8 @@ internal fun BottomBarView(
                 selected = isSelected,
                 icon = {
                     Icon(
-                        bottomNavigationItem.icon, contentDescription = bottomNavigationItem.label
+                        painterResource(bottomNavigationItem.iconResourcePath),
+                        contentDescription = bottomNavigationItem.label
                     )
                 }, label = {
                     Text(bottomNavigationItem.label)
@@ -56,17 +58,19 @@ internal fun BottomBarView(
 }
 
 data class BottomNavigationItem(
-    val label: String, val icon: ImageVector = Icons.Filled.Home, val route: String = ""
+    val label: String, val iconResourcePath: DrawableResource, val route: String = MainScreen.Home.route
 ) {
     companion object {
         fun bottomNavigationItems(): List<BottomNavigationItem> {
             return listOf(
                 BottomNavigationItem(
-                    label = "Home", icon = Icons.Filled.Home, route = MainScreen.Home.route
+                    label = "Home",
+                    iconResourcePath = Res.drawable.home_ic,
+                    route = MainScreen.Home.route
                 ),
                 BottomNavigationItem(
                     label = "History",
-                    icon = Icons.Filled.Favorite,
+                    iconResourcePath = Res.drawable.transaction_ic,
                     route = MainScreen.History.route
                 ),
             )
