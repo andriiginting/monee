@@ -1,7 +1,6 @@
 package screen.home
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,10 +23,10 @@ import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
-internal fun FilterViews(defaultSelectedItemIndex: Int = 0, onSelectedChanged: (Int) -> Unit = {}) {
+internal fun FilterViews(defaultSelectedItemIndex: Int = 0, onSelectedChanged: (MoneyFilterType) -> Unit = {}) {
     var selectedItemIndex by remember { mutableStateOf(defaultSelectedItemIndex) }
 
-    LazyRow(contentPadding = PaddingValues(horizontal = 16.dp)) {
+    LazyRow {
         items(availableFilter.size) { index ->
 
             val isSelected = availableFilter[selectedItemIndex] == availableFilter[index]
@@ -69,7 +68,7 @@ internal fun FilterViews(defaultSelectedItemIndex: Int = 0, onSelectedChanged: (
                 },
                 onClick = {
                     selectedItemIndex = index
-                    onSelectedChanged(index)
+                    onSelectedChanged(availableFilter[index])
                 },
                 label = {
                     Text(
