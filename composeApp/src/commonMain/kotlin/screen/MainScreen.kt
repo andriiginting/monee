@@ -15,7 +15,7 @@ internal fun MainHostNav() {
     NavHost(
         navigator = navigator,
         navTransition = NavTransition(),
-        initialRoute = Navigator.HOME.route,
+        initialRoute = Navigator.SPLASH.route,
     ) {
         scene(
             route = Navigator.HOME.route,
