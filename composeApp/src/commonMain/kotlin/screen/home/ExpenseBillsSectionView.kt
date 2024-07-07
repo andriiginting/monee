@@ -21,8 +21,7 @@ internal fun ExpenseBillsSectionView() {
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
         )
-
-        FilterViews() {
+        FilterViews {
 
         }
 
