@@ -2,7 +2,7 @@ Monee :construction_worker::hammer:
 =====
 
  <p align="center">
- <img src="/doc/monee.png"/>
+ <img src="/docs/monee.png"/>
  </p>
 
 ## Overview
