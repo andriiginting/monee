@@ -19,7 +19,7 @@ internal fun ExpenseBillsSectionView() {
             color = MaterialTheme.colorScheme.inverseSurface,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+            modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)
         )
         FilterViews {
 

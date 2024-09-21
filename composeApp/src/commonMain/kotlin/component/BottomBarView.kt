@@ -1,5 +1,7 @@
 package component
 
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -8,6 +10,10 @@ import androidx.compose.material3.NavigationBarItemColors
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.unit.dp
 import moe.tlaster.precompose.navigation.Navigator
 import moneyproject.composeapp.generated.resources.Res
 import moneyproject.composeapp.generated.resources.home_ic
@@ -22,6 +28,9 @@ internal fun BottomBarView(
 ) {
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp, 16.dp, 0.dp, 0.dp))
+            .shadow(elevation = 2.dp)
     ) {
         menus.forEachIndexed { _, bottomNavigationItem ->
 
@@ -58,7 +67,9 @@ internal fun BottomBarView(
 }
 
 data class BottomNavigationItem(
-    val label: String, val iconResourcePath: DrawableResource, val route: String = MainScreen.Home.route
+    val label: String,
+    val iconResourcePath: DrawableResource,
+    val route: String = MainScreen.Home.route
 ) {
     companion object {
         fun bottomNavigationItems(): List<BottomNavigationItem> {
