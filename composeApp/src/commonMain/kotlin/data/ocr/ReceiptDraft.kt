@@ -101,7 +101,7 @@ private val nonTotalLabels = Regex(
 private val taxLabels = Regex("""(?:消費税|内税|外税|税額|対象額|対象計|対象|(?i:tax|vat|gst))""")
 
 private val ignoredItemLabels = Regex(
-    """(?:小計|合計|総計|消費税|内税|外税|税額|対象計|対象額|対象|内税額|外税額|お預り|お預かり|お釣り|おつり|釣銭|現金|クレジット|ポイント|人数|点|(?i:subtotal|sub\s+total|total|tax|vat|gst|change|cash|tendered|credit|debit|card|visa|mastercard|amex|discount|amount\s+due|balance\s+due|points?|qty))"""
+    """(?:小計|合計|総計|消費税|内税|外税|税額|対象計|対象額|対象|内税額|外税額|お預り|お預かり|お釣り|おつり|釣銭|現金|クレジット|ポイント|人数|点|値引|割引|返品|(?i:subtotal|sub\s+total|total|tax|vat|gst|change|cash|tendered|credit|debit|card|visa|mastercard|amex|discount|amount\s+due|balance\s+due|points?|qty))"""
 )
 
 /** Leading item/PLU code OCR prints before the name ("04333ガーリック…"). */
@@ -149,6 +149,12 @@ fun parseReceiptText(text: String): ReceiptDraft {
     // Totals discovered by the column zip, which is the most reliable pairing
     // available when the receipt arrives as separate name and amount columns.
     val columnTotals = mutableListOf<Long>()
+
+    // Index of the first line that can plausibly begin the item block. Store
+    // names, taglines and addresses sit above it and own no price, so letting
+    // them into a column run would pair the header against the first amount and
+    // shift every item onto its neighbour's price.
+    val headerEnd = lines.indexOfFirst { datePattern.containsMatchIn(it) } + 1
 
     val date = allLines.firstNotNullOfOrNull { datePattern.find(it)?.value }
 
@@ -244,6 +250,9 @@ fun parseReceiptText(text: String): ReceiptDraft {
                 line.length >= 2 && !fieldLabel.containsMatchIn(line)
         }
 
+    // The resolved store name is never a purchased item, wherever it sits.
+    val locationIndex = location?.let { lines.indexOf(it) } ?: -1
+
     // --- line items --------------------------------------------------------
     /** Interleaved rows that carry no amount and must not break a column run. */
     fun isColumnFiller(line: String): Boolean =
@@ -256,8 +265,11 @@ fun parseReceiptText(text: String): ReceiptDraft {
      * in the run so the zip against the amount column stays aligned; they are
      * filtered out after pairing.
      */
-    fun isColumnText(line: String): Boolean =
-        !isNoise(line) &&
+    fun isColumnText(index: Int, line: String): Boolean =
+        index != locationIndex &&
+            // Above the date the receipt is still masthead: name, address, slogan.
+            index >= headerEnd &&
+            !isNoise(line) &&
             amountOnly(line) == null &&
             inlineAmount(line) == null &&
             !barcodeLine.matches(line) &&
@@ -282,14 +294,14 @@ fun parseReceiptText(text: String): ReceiptDraft {
     val columnItems = buildList {
         var i = 0
         while (i < lines.size) {
-            if (!isColumnText(lines[i])) { i++; continue }
+            if (!isColumnText(i, lines[i])) { i++; continue }
 
             // Barcodes and single-character marks are interleaved with the names
             // but own no amount, so they are skipped without ending the run.
             val texts = mutableListOf<String>()
             while (i < lines.size) {
                 when {
-                    isColumnText(lines[i]) -> { texts += lines[i]; i++ }
+                    isColumnText(i, lines[i]) -> { texts += lines[i]; i++ }
                     isColumnFiller(lines[i]) -> i++
                     else -> break
                 }
@@ -325,7 +337,11 @@ fun parseReceiptText(text: String): ReceiptDraft {
 
     val lineItems = if (inlineItems.size >= columnItems.size) inlineItems else columnItems
 
-    val columnTotal = columnTotals.lastOrNull()
+    // A run can carry several 合計 rows (one per tax bracket, then the grand
+    // total) in no guaranteed order, so the largest is the amount charged.
+    // Only trust it when the column pass is also what produced the items:
+    // otherwise the "column" is a loyalty block and its figures are balances.
+    val columnTotal = columnTotals.maxOrNull().takeIf { lineItems === columnItems }
 
     val total = columnTotal ?: labelledTotal() ?: lines
         .asSequence()
