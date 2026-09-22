@@ -1,38 +1,34 @@
 package component
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.CameraAlt
-import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.PieChart
+import androidx.compose.material.icons.automirrored.outlined.ShowChart
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import moe.tlaster.precompose.navigation.Navigator
 import navigation.Navigator as AppRoute
 
@@ -52,52 +48,40 @@ internal fun BottomBarView(
             .fillMaxWidth()
             .height(92.dp),
     ) {
-        Row(
+        NavigationBar(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(80.dp)
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.Top,
+                .height(80.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            tonalElevation = 0.dp,
+            windowInsets = WindowInsets(0, 0, 0, 0),
         ) {
             BottomNavigationItem.items().take(2).forEach { item ->
-                NavigationItem(
-                    item = item,
-                    selected = item.route == currentDestination,
-                    navigator = navigator,
-                    modifier = Modifier.weight(1f),
-                )
+                NavigationItem(item, currentDestination, navigator)
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
             BottomNavigationItem.items().drop(2).forEach { item ->
-                NavigationItem(
-                    item = item,
-                    selected = item.route == currentDestination,
-                    navigator = navigator,
-                    modifier = Modifier.weight(1f),
-                )
+                NavigationItem(item, currentDestination, navigator)
             }
         }
 
-        Box(
+        FloatingActionButton(
+            onClick = onScanClick,
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .offset(y = (-24).dp)
                 .size(64.dp)
-                .shadow(8.dp, CircleShape)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary)
-                .border(6.dp, MaterialTheme.colorScheme.background, CircleShape)
-                .clickable(onClick = onScanClick),
-            contentAlignment = Alignment.Center,
+                .shadow(8.dp, CircleShape),
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            shape = CircleShape,
         ) {
             Icon(
                 imageVector = Icons.Outlined.CameraAlt,
                 contentDescription = "Scan receipt",
-                tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(28.dp),
             )
         }
@@ -105,44 +89,36 @@ internal fun BottomBarView(
 }
 
 @Composable
-private fun NavigationItem(
+private fun RowScope.NavigationItem(
     item: BottomNavigationItem,
-    selected: Boolean,
+    currentDestination: String?,
     navigator: Navigator,
-    modifier: Modifier,
 ) {
-    val contentColor = if (selected) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
-
-    Column(
-        modifier = modifier
-            .height(64.dp)
-            .clip(MaterialTheme.shapes.large)
-            .clickable {
-                if (!selected) {
-                    navigator.navigate(item.route)
-                }
+    NavigationBarItem(
+        modifier = Modifier.weight(1f),
+        selected = item.route == currentDestination,
+        onClick = {
+            if (item.route != currentDestination) {
+                navigator.navigate(item.route)
             }
-            .padding(horizontal = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        Icon(
-            imageVector = item.icon,
-            contentDescription = item.label,
-            tint = contentColor,
-            modifier = Modifier.size(24.dp),
-        )
-        Text(
-            text = item.label,
-            color = contentColor,
-            fontSize = 12.sp,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-        )
-    }
+        },
+        icon = {
+            Icon(
+                imageVector = item.icon,
+                contentDescription = item.label,
+            )
+        },
+        label = {
+            Text(item.label)
+        },
+        colors = NavigationBarItemDefaults.colors(
+            selectedIconColor = MaterialTheme.colorScheme.primary,
+            selectedTextColor = MaterialTheme.colorScheme.primary,
+            indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        ),
+    )
 }
 
 private data class BottomNavigationItem(
@@ -156,10 +132,10 @@ private data class BottomNavigationItem(
             BottomNavigationItem(
                 "Activity",
                 Icons.AutoMirrored.Outlined.List,
-                AppRoute.HISTORY.route
+                AppRoute.HISTORY.route,
             ),
             BottomNavigationItem("Budget", Icons.Outlined.PieChart, AppRoute.BUDGET.route),
-            BottomNavigationItem("Insight", Icons.Outlined.Flag, AppRoute.INSIGHT.route),
+            BottomNavigationItem("Insight", Icons.AutoMirrored.Outlined.ShowChart, AppRoute.INSIGHT.route),
         )
     }
 }
