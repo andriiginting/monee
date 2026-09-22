@@ -14,9 +14,12 @@ import navigation.Navigator as AppRoute
 import screen.history.HistoryScreen
 import screen.home.HomeScreen
 import screen.personalizecard.PersonalizeCardScreen
+import screen.scanner.ScannerScreen
 
 @Composable
-internal fun MainHostNav(navigator: PrecomposeNavigator) {
+internal fun MainHostNav(
+    navigator: PrecomposeNavigator,
+) {
     NavHost(
         navigator = navigator,
         navTransition = NavTransition(),
@@ -44,6 +47,10 @@ internal fun MainHostNav(navigator: PrecomposeNavigator) {
 
         scene(route = AppRoute.PERSONALIZE_CARD.route) {
             PersonalizeCardScreen(navigator)
+        }
+
+        scene(route = AppRoute.SCANNER.route) {
+            ScannerScreen(navigator = navigator)
         }
     }
 }

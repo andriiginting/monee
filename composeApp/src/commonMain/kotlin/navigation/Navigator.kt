@@ -6,6 +6,7 @@ internal enum class Navigator(val route: String) {
     BUDGET("/budget"),
     INSIGHT("/insight"),
     SPLASH("/splash"),
+    SCANNER("/scanner"),
     PERSONALIZE_CARD("/personalize_card");
 
     companion object {

@@ -6,8 +6,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import component.WalletBalanceView
-import data.getWalletBalanceData
 import moe.tlaster.precompose.navigation.Navigator
 
 @Composable
@@ -16,7 +14,6 @@ internal fun HomeScreen(navigator: Navigator) {
         modifier = Modifier.padding(16.dp).fillMaxSize()
     ) {
         item {
-            WalletBalanceView(getWalletBalanceData(), navigator)
             ExpenseBillsSectionView()
         }
     }
