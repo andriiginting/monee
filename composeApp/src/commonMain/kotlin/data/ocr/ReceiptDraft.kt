@@ -58,7 +58,7 @@ private val bareGroupedAmountLine = Regex("""^\s*[(（]?\s*(-?[0-9]{1,3}(?:[.,][
 private val amountAtEnd = Regex("""(?:[¥￥$])\s*(-?[0-9][0-9.,]*)\s*[-*]?\s*$""")
 
 /** Same, but tolerating a missing currency mark (ASCII receipts). */
-private val looseAmountAtEnd = Regex("""(?:[¥￥$])?\s{2,}(-?[0-9][0-9.,]*)\s*[-*]?\s*$""")
+private val looseAmountAtEnd = Regex("""(?:[¥￥$])?\s+(-?[0-9][0-9.,]*)\s*[-*]?\s*$""")
 
 private val datePattern = Regex(
     """(?i)(?:20\d{2}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]20\d{2}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2},?\s+20\d{2}|20\d{2}年\d{1,2}月\d{1,2}日)"""
@@ -73,9 +73,15 @@ private val paymentSlipStart = Regex(
     """(?i)(?:クレジット売上票|売上票|加盟店名|端末番号|ご利用日|会員番号|承認番号|処理通番|カード会社|card\s+company|app\s+code|tran\s+no|term\s+no|merchant\s+copy|customer\s+copy)"""
 )
 
-/** Identifier-ish lines that must never be read as a price. */
+/**
+ * Identifier-ish lines that must never be read as a price. Counts are included:
+ * a receipt prints "Guests 3" or "テーブル 41" in the same shape as an item and
+ * its price, and reading the count as money both invents a purchase and shifts
+ * the column pairing onto the wrong amounts.
+ */
 private val identifierLine = Regex(
-    """(?i)(?:tel|phone|fax|電話|レジ|登録番号|伝票番号|aid|acct|visa|master|jcb|amex|ic\b|no\.|№)"""
+    """(?i)(?:tel|phone|fax|電話|レジ|登録番号|伝票番号|aid|acct|visa|master|jcb|amex|ic\b|no\.|№""" +
+        """|table|guests?|covers?|order|check|party|seat|人数|テーブル|卓|伝票|注文)"""
 )
 
 /** Bare digit runs (register no, table no, card tails) and separator rules. */
@@ -136,7 +142,7 @@ private fun List<String>.mergeSplitLabels(): List<String> {
 fun parseReceiptText(text: String): ReceiptDraft {
     val allLines = text
         .lineSequence()
-        .map(String::trim)
+        .map(::normalizeOcrLine)
         .filter(String::isNotBlank)
         .filterNot { separatorRun.matches(it) }
         .toList()
@@ -374,6 +380,39 @@ fun parseReceiptText(text: String): ReceiptDraft {
         location = location,
         lineItems = lineItems,
     )
+}
+
+/**
+ * OCR frequently returns Japanese full-width digits and inserts spaces inside
+ * currency amounts, for example `￥３ ２５０`. Normalize those presentation
+ * differences before applying the receipt parser. We only collapse spaces after
+ * a currency marker; a generic digit-space-digit rewrite would confuse
+ * quantity/unit-price text such as `250 500`.
+ */
+private fun normalizeOcrLine(raw: String): String {
+    val normalized = buildString(raw.length) {
+        raw.trim().forEach { character ->
+            append(
+                when (character) {
+                    in '０'..'９' -> ('0'.code + (character.code - '０'.code)).toChar()
+                    '￥' -> '¥'
+                    '＄' -> '$'
+                    '，' -> ','
+                    '．', '。' -> '.'
+                    '－', '−' -> '-'
+                    '\u00A0' -> ' '
+                    else -> character
+                },
+            )
+        }
+    }
+
+    var result = normalized
+    val spacedCurrencyAmount = Regex("""([¥$]\s*[0-9])\s+(?=[0-9])""")
+    while (spacedCurrencyAmount.containsMatchIn(result)) {
+        result = result.replace(spacedCurrencyAmount, "$1")
+    }
+    return result
 }
 
 /**
