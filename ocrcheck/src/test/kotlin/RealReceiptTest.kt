@@ -11,7 +11,10 @@ import kotlin.test.assertEquals
 class RealReceiptTest {
 
     private val draft by lazy {
-        parseReceiptText(java.io.File(System.getProperty("saizeriya.path")!!).readText())
+        val text = checkNotNull(javaClass.getResourceAsStream("/saizeriya.txt")) {
+            "missing test fixture saizeriya.txt"
+        }.bufferedReader().readText()
+        parseReceiptText(text)
     }
 
     @Test

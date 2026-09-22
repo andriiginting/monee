@@ -22,7 +22,6 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
-    systemProperty("saizeriya.path", file("src/test/resources/saizeriya.txt").absolutePath)
     testLogging {
         events("passed", "failed", "skipped")
         showStandardStreams = true
