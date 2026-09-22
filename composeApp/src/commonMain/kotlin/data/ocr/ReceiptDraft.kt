@@ -180,7 +180,7 @@ fun parseReceiptText(text: String): ReceiptDraft {
         0
     }
 
-    val date = allLines.firstNotNullOfOrNull { datePattern.find(it)?.value }
+    val date = allLines.firstNotNullOfOrNull { datePattern.find(it)?.value }?.let(::formatReceiptDate)
 
     /** True when a line can never carry a monetary amount. */
     fun isNoise(line: String): Boolean =
@@ -413,6 +413,62 @@ private fun normalizeOcrLine(raw: String): String {
         result = result.replace(spacedCurrencyAmount, "$1")
     }
     return result
+}
+
+private val MONTH_ABBREVIATIONS = listOf(
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+)
+
+/** `2026/09/22`, `22.09.2026`, `2026年9月22日` and `Sep 22, 2026` all mean one date. */
+private val isoDate = Regex("""(20\d{2})[-/.](\d{1,2})[-/.](\d{1,2})""")
+private val dayFirstDate = Regex("""(\d{1,2})[-/.](\d{1,2})[-/.](20\d{2})""")
+private val japaneseDate = Regex("""(20\d{2})年(\d{1,2})月(\d{1,2})日""")
+private val monthNameDate = Regex(
+    """(?i)(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2}),?\s+(20\d{2})"""
+)
+
+/**
+ * Renders a date the receipt printed as `Oct 24, 2026`, so a draft reads the
+ * same way whether the receipt was Japanese, ISO or US formatted. A date that
+ * does not resolve to a real calendar day is returned unchanged rather than
+ * coerced, since a wrong date is worse than an unformatted one.
+ */
+private fun formatReceiptDate(raw: String): String {
+    fun render(year: Int, month: Int, day: Int): String? {
+        if (month !in 1..12) return null
+        if (day !in 1..daysInMonth(year, month)) return null
+        return "${MONTH_ABBREVIATIONS[month - 1]} $day, $year"
+    }
+
+    japaneseDate.find(raw)?.destructured?.let { (y, m, d) ->
+        render(y.toInt(), m.toInt(), d.toInt())?.let { return it }
+    }
+    monthNameDate.find(raw)?.destructured?.let { (name, d, y) ->
+        val month = MONTH_ABBREVIATIONS.indexOfFirst { it.equals(name.take(3), ignoreCase = true) } + 1
+        render(y.toInt(), month, d.toInt())?.let { return it }
+    }
+    isoDate.find(raw)?.destructured?.let { (y, m, d) ->
+        render(y.toInt(), m.toInt(), d.toInt())?.let { return it }
+    }
+    dayFirstDate.find(raw)?.destructured?.let { (first, second, y) ->
+        // Ambiguous between day-first and month-first. A value above 12 can only
+        // be a day; otherwise assume month-first, matching the US receipts the
+        // pattern already recognises by name.
+        val year = y.toInt()
+        val a = first.toInt()
+        val b = second.toInt()
+        val resolved = if (a > 12) render(year, b, a) else render(year, a, b)
+        resolved?.let { return it }
+    }
+    return raw
+}
+
+/** Leap years matter: a receipt dated Feb 29 must not be rejected as invalid. */
+private fun daysInMonth(year: Int, month: Int): Int = when (month) {
+    1, 3, 5, 7, 8, 10, 12 -> 31
+    4, 6, 9, 11 -> 30
+    2 -> if (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)) 29 else 28
+    else -> 0
 }
 
 /**

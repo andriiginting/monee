@@ -116,7 +116,7 @@ class ReceiptParsingTest {
     @Test
     fun `extracts date and location`() {
         val jp = parseReceiptText(japaneseConbini)
-        assertEquals("2024/03/15", jp.date)
+        assertEquals("Mar 15, 2024", jp.date)
         assertEquals("ローソン 渋谷店", jp.location)
 
         val us = parseReceiptText(usStyle)

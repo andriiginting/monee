@@ -24,7 +24,7 @@ class RealReceiptTest {
 
     @Test
     fun `reads the purchase date`() {
-        assertEquals("2026/09/22", draft.date)
+        assertEquals("Sep 22, 2026", draft.date)
     }
 
     @Test

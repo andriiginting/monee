@@ -40,7 +40,7 @@ class ColumnReceiptTest {
 
     @Test
     fun `reads the ok store purchase date`() {
-        assertEquals("2026年09月22日", okStore.date)
+        assertEquals("Sep 22, 2026", okStore.date)
     }
 
     @Test
@@ -67,7 +67,7 @@ class ColumnReceiptTest {
 
     @Test
     fun `reads the nishimatsuya purchase date`() {
-        assertEquals("2026年9月22日", nishimatsuya.date)
+        assertEquals("Sep 22, 2026", nishimatsuya.date)
     }
 
     @Test
