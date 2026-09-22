@@ -15,10 +15,11 @@ data class ReceiptLineItem(
 data class ReceiptDraft(
     val totalMinor: Long?,
     val date: String?,
+    val time: String?,
     val location: String?,
     val lineItems: List<ReceiptLineItem>,
     val account: String = "Cash Wallet",
-    val category: String = "Select Category...",
+    val category: String = CATEGORY_UNKNOWN,
 )
 
 /**
@@ -63,6 +64,13 @@ private val looseAmountAtEnd = Regex("""(?:[¥￥$])?\s+(-?[0-9][0-9.,]*)\s*[-*]
 private val datePattern = Regex(
     """(?i)(?:20\d{2}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]20\d{2}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2},?\s+20\d{2}|20\d{2}年\d{1,2}月\d{1,2}日)"""
 )
+
+/**
+ * The purchase time is printed on the same line as the purchase date. Scanning
+ * the whole receipt instead would pick up opening hours ("営業時間8:30～21:30"),
+ * so the match is deliberately anchored to the date line.
+ */
+private val timeOnDateLine = Regex("""(?<![0-9:])([0-9]{1,2}):([0-9]{2})(?![0-9:])""")
 
 /**
  * Everything from the credit-slip header onwards is card-processing metadata:
@@ -139,6 +147,55 @@ private fun List<String>.mergeSplitLabels(): List<String> {
     return out
 }
 
+/**
+ * A spending category guessed from the receipt's own words. OCR reports text,
+ * not meaning, so this is keyword inference over that text: a receipt naming
+ * itself a レストラン is dining, one advertising 食料品 is groceries. The guess is
+ * deliberately conservative -- an unrecognised receipt stays [CATEGORY_UNKNOWN]
+ * rather than being forced into the nearest category, because a wrong category
+ * is silently filed and a missing one is visibly asked about.
+ */
+const val CATEGORY_UNKNOWN = "Select Category..."
+
+private val categoryKeywords: List<Pair<String, Regex>> = listOf(
+    "Food & Dining" to Regex(
+        """(?i)(?:レストラン|食堂|カフェ|喫茶|居酒屋|ラーメン|そば|うどん|寿司|焼肉|ドリア|ピザ|パスタ|ドリンクバー""" +
+            """|restaurant|cafe|coffee|diner|bistro|bakery|pizza|sushi|ramen)"""
+    ),
+    "Groceries" to Regex(
+        """(?i)(?:食料品|生鮮|青果|鮮魚|精肉|スーパー|マート|ストア|八百屋""" +
+            """|supermarket|grocer|grocery|market|mart)"""
+    ),
+    "Transport" to Regex(
+        """(?i)(?:乗車券|運賃|定期券|交通|鉄道|地下鉄|バス|タクシー|駐車|高速|ガソリン|給油|チャージ|Suica|PASMO|ICOCA""" +
+            """|railway|subway|metro|taxi|parking|fuel|petrol|gasoline|fare|transit)"""
+    ),
+    "Health & Pharmacy" to Regex(
+        """(?i)(?:薬局|薬品|処方|調剤|病院|医院|クリニック|歯科""" +
+            """|pharmacy|drugstore|clinic|hospital|dental)"""
+    ),
+    "Shopping" to Regex(
+        """(?i)(?:衣料|洋服|シューズ|靴|ベビー|キッズ|玩具|雑貨|書店|家電""" +
+            """|baby|kids|apparel|clothing|shoes|toys|books|electronics)"""
+    ),
+    "Utilities" to Regex(
+        """(?i)(?:電気料金|ガス料金|水道|通信料|携帯料金""" +
+            """|electricity|water\s+bill|gas\s+bill|utility|broadband)"""
+    ),
+)
+
+/**
+ * Picks the category whose keywords the receipt mentions most often, so a
+ * single stray word cannot outvote the receipt's actual subject.
+ */
+internal fun inferReceiptCategory(lines: List<String>): String {
+    val best = categoryKeywords
+        .map { (category, pattern) -> category to lines.count { pattern.containsMatchIn(it) } }
+        .filter { it.second > 0 }
+        .maxByOrNull { it.second }
+    return best?.first ?: CATEGORY_UNKNOWN
+}
+
 fun parseReceiptText(text: String): ReceiptDraft {
     val allLines = text
         .lineSequence()
@@ -180,7 +237,15 @@ fun parseReceiptText(text: String): ReceiptDraft {
         0
     }
 
-    val date = allLines.firstNotNullOfOrNull { datePattern.find(it)?.value }?.let(::formatReceiptDate)
+    val dateLine = allLines.firstOrNull { datePattern.containsMatchIn(it) }
+    val date = dateLine?.let { datePattern.find(it)?.value }?.let(::formatReceiptDate)
+    val time = dateLine?.let { line ->
+        timeOnDateLine.find(line)?.let { match ->
+            val (hour, minute) = match.destructured
+            val h = hour.toInt()
+            if (h in 0..23) "${h.toString().padStart(2, '0')}:$minute" else null
+        }
+    }
 
     /** True when a line can never carry a monetary amount. */
     fun isNoise(line: String): Boolean =
@@ -377,7 +442,9 @@ fun parseReceiptText(text: String): ReceiptDraft {
     return ReceiptDraft(
         totalMinor = total,
         date = date,
+        time = time,
         location = location,
+        category = inferReceiptCategory(allLines),
         lineItems = lineItems,
     )
 }
