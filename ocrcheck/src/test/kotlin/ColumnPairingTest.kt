@@ -116,4 +116,47 @@ class ColumnPairingTest {
         assertEquals(listOf("商品A" to 500_00L), draft.lineItems.map { it.name to it.amountMinor })
         assertEquals(400_00L, draft.totalMinor)
     }
+
+    @Test
+    fun `items are found when the date is printed at the foot of the receipt`() {
+        // The masthead guard keys off the date, but plenty of receipts print it
+        // below the totals. Treating that as the end of the header rejected the
+        // entire body and returned a draft carrying nothing but the date.
+        val draft = parseReceiptText(
+            """
+            オーケー北赤羽店
+            商品A
+            商品B
+            合計
+            ¥100
+            ¥200
+            ¥300
+            2026年9月22日
+            """.trimIndent()
+        )
+
+        assertEquals(
+            listOf("商品A" to 100_00L, "商品B" to 200_00L),
+            draft.lineItems.map { it.name to it.amountMinor },
+        )
+        assertEquals(300_00L, draft.totalMinor)
+    }
+
+    @Test
+    fun `items are found on a receipt with no date at all`() {
+        val draft = parseReceiptText(
+            """
+            オーケー北赤羽店
+            商品A
+            商品B
+            合計
+            ¥100
+            ¥200
+            ¥300
+            """.trimIndent()
+        )
+
+        assertEquals(2, draft.lineItems.size)
+        assertEquals(300_00L, draft.totalMinor)
+    }
 }

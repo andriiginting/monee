@@ -154,7 +154,25 @@ fun parseReceiptText(text: String): ReceiptDraft {
     // names, taglines and addresses sit above it and own no price, so letting
     // them into a column run would pair the header against the first amount and
     // shift every item onto its neighbour's price.
-    val headerEnd = lines.indexOfFirst { datePattern.containsMatchIn(it) } + 1
+    //
+    // The date marks the end of the masthead only when it is printed there.
+    // Plenty of receipts print it at the foot instead, and treating that as the
+    // boundary would reject the entire body of the receipt, so a date is only
+    // believed as a boundary when it precedes every amount on the receipt.
+    val firstAmountIndex = lines.indexOfFirst { line ->
+        !identifierLine.containsMatchIn(line) &&
+            !maskedNumber.containsMatchIn(line) &&
+            !datePattern.containsMatchIn(line) &&
+            (amountOnlyLine.containsMatchIn(line) ||
+                bareGroupedAmountLine.containsMatchIn(line) ||
+                amountAtEnd.containsMatchIn(line))
+    }
+    val dateIndex = lines.indexOfFirst { datePattern.containsMatchIn(it) }
+    val headerEnd = if (dateIndex >= 0 && (firstAmountIndex < 0 || dateIndex < firstAmountIndex)) {
+        dateIndex + 1
+    } else {
+        0
+    }
 
     val date = allLines.firstNotNullOfOrNull { datePattern.find(it)?.value }
 
