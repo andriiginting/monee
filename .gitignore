@@ -1,18 +1,34 @@
-*.iml
-.kotlin
-.gradle
+# Gradle / Kotlin
+.gradle/
+.kotlin/
 **/build/
-xcuserdata
-!src/**/build/
 local.properties
-.idea
-.DS_Store
-captures
-.externalNativeBuild
-.cxx
+
+# IDEs
+.idea/
+.fleet/
+*.iml
+xcuserdata/
+**/xcshareddata/WorkspaceSettings.xcsettings
+
+# Android
+.externalNativeBuild/
+.cxx/
+captures/
+
+# Xcode
 *.xcodeproj/*
 !*.xcodeproj/project.pbxproj
 !*.xcodeproj/xcshareddata/
 !*.xcodeproj/project.xcworkspace/
 !*.xcworkspace/contents.xcworkspacedata
-**/xcshareddata/WorkspaceSettings.xcsettings
+
+# Generated reports and local outputs
+outputs/
+
+# Firebase client configuration
+composeApp/google-services.json
+iosApp/iosApp/GoogleService-Info.plist
+
+# OS
+.DS_Store
