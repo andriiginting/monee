@@ -102,7 +102,7 @@ private fun TotalBalanceView(balances: BalanceData) {
     ) {
         Column {
             Text(
-                "Total balance", color = Color.White, fontSize = 10.sp
+                "Total balance", color = MaterialTheme.colorScheme.onPrimaryContainer, fontSize = 10.sp
             )
 
             Text(
@@ -110,7 +110,7 @@ private fun TotalBalanceView(balances: BalanceData) {
                     append(if (balances.isVisibleToUser) balances.totalBalance else "***")
                     append(" ")
                     append(balances.currency.name)
-                }, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 24.sp
+                }, color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold, fontSize = 24.sp
             )
         }
 
@@ -126,7 +126,7 @@ private fun TotalBalanceView(balances: BalanceData) {
                     )
                 ),
                 contentDescription = Icons.Filled.Favorite.name,
-                tint = Color.White
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
     }
@@ -134,4 +134,4 @@ private fun TotalBalanceView(balances: BalanceData) {
 
 @Composable
 internal fun getInnerCardColor(): Color =
-    if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceContainer else Color.White
+    if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceContainer else MaterialTheme.colorScheme.surface
