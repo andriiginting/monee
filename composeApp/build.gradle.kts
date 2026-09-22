@@ -34,6 +34,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.core.ktx)
+            implementation(libs.mlkit.text.recognition.japanese)
         }
         commonMain.dependencies {
             implementation("org.jetbrains.compose.runtime:runtime:$composeVersion")
