@@ -80,6 +80,14 @@ private val identifierLine = Regex(
 
 /** Bare digit runs (register no, table no, card tails) and separator rules. */
 private val bareIdentifier = Regex("""^\s*[0-9]{3,}\s*$""")
+
+/** Form-field captions that are never the store name. */
+private val fieldLabel = Regex(
+    """(?i)(?:事業者番号|登録番号|ご購入店|営業時間|責No|伝票番号|店No|担当|取引|レジ|会員番号|TEL|電話|No[:.：]|Everyday\s+Low\s+Price|高品質)"""
+)
+
+/** Product barcode / JAN lines printed above an item name. */
+private val barcodeLine = Regex("""^\s*[0-9]{10,}\s*$""")
 private val separatorRun = Regex("""^[\s\-=_.·*]+$""")
 private val maskedNumber = Regex("""[*×]{3,}|\d{4,}-\d{3,}|\d{6,}""")
 
@@ -87,13 +95,13 @@ private val totalLabels = Regex("""$L(?:合計|総計|お買上計|お買上げ�
 
 /** Looks like a total but is not the amount charged. */
 private val nonTotalLabels = Regex(
-    """$L(?:小計|お預り|お預かり|お釣り|おつり|釣銭|現金|対象計|内税額|外税額|税額|(?i:subtotal|sub\s+total|change|cash|tendered))$R"""
+    """(?:小計|お預り|お預かり|お釣り|おつり|釣銭|現金|対象計|対象額|対象|内税額|外税額|税額|消費税|(?i:subtotal|sub\s+total|change|cash|tendered))"""
 )
 
-private val taxLabels = Regex("""$L(?:消費税|内税|外税|(?i:tax|vat|gst))$R""")
+private val taxLabels = Regex("""(?:消費税|内税|外税|税額|対象額|対象計|対象|(?i:tax|vat|gst))""")
 
 private val ignoredItemLabels = Regex(
-    """$L(?:小計|合計|総計|消費税|内税|外税|税額|対象計|内税額|外税額|お預り|お預かり|お釣り|おつり|釣銭|現金|クレジット|ポイント|人数|(?i:subtotal|sub\s+total|total|tax|vat|gst|change|cash|tendered|credit|debit|card|visa|mastercard|amex|discount|amount\s+due|balance\s+due|points?|qty))$R"""
+    """(?:小計|合計|総計|消費税|内税|外税|税額|対象計|対象額|対象|内税額|外税額|お預り|お預かり|お釣り|おつり|釣銭|現金|クレジット|ポイント|人数|点|(?i:subtotal|sub\s+total|total|tax|vat|gst|change|cash|tendered|credit|debit|card|visa|mastercard|amex|discount|amount\s+due|balance\s+due|points?|qty))"""
 )
 
 /** Leading item/PLU code OCR prints before the name ("04333ガーリック…"). */
@@ -102,6 +110,29 @@ private val leadingItemCode = Regex("""^[(（]?\s*\d{4,6}\s*[)）]?\s*""")
 /** Trailing quantity/unit-price noise ("@200 x 2コ", "2 x 250"). */
 private val quantityNoise = Regex("""(?i)[@＠]?\s*\d+\s*(?:x|×|@|コ|個)\s*[\d.,]*\s*$""")
 
+/**
+ * OCR sometimes breaks a short CJK label across lines ("小" / "計"). Rejoin runs of
+ * single-character CJK lines so the label matches and the column zip stays aligned.
+ */
+private fun List<String>.mergeSplitLabels(): List<String> {
+    val out = mutableListOf<String>()
+    var i = 0
+    while (i < size) {
+        val line = this[i]
+        val isSingleCjk = line.length == 1 && line[0].code in 0x3000..0x9FFF
+        if (isSingleCjk) {
+            val merged = StringBuilder()
+            while (i < size && this[i].length == 1 && this[i][0].code in 0x3000..0x9FFF) {
+                merged.append(this[i]); i++
+            }
+            out += merged.toString()
+        } else {
+            out += line; i++
+        }
+    }
+    return out
+}
+
 fun parseReceiptText(text: String): ReceiptDraft {
     val allLines = text
         .lineSequence()
@@ -109,10 +140,15 @@ fun parseReceiptText(text: String): ReceiptDraft {
         .filter(String::isNotBlank)
         .filterNot { separatorRun.matches(it) }
         .toList()
+        .mergeSplitLabels()
 
     // Drop the card-processing slip; it contributes no prices, only large ids.
     val slipIndex = allLines.indexOfFirst { paymentSlipStart.containsMatchIn(it) }
     val lines = if (slipIndex > 0) allLines.subList(0, slipIndex) else allLines
+
+    // Totals discovered by the column zip, which is the most reliable pairing
+    // available when the receipt arrives as separate name and amount columns.
+    val columnTotals = mutableListOf<Long>()
 
     val date = allLines.firstNotNullOfOrNull { datePattern.find(it)?.value }
 
@@ -134,6 +170,13 @@ fun parseReceiptText(text: String): ReceiptDraft {
         val m = amountAtEnd.find(line) ?: looseAmountAtEnd.find(line) ?: return null
         return m.groupValues[1].toMinorUnits()
     }
+
+    fun cleanName(raw: String): String =
+        raw.replace(leadingItemCode, "")
+            .replace(quantityNoise, "")
+            .trim()
+            .trimEnd('-', ':', '*', '@', '・')
+            .trim()
 
     // --- total -------------------------------------------------------------
     // A labelled total may carry its amount inline, or sit in a label column
@@ -168,45 +211,61 @@ fun parseReceiptText(text: String): ReceiptDraft {
         return amounts.getOrNull(offset)
     }
 
-    val total = labelledTotal() ?: lines
-        .asSequence()
-        .filterNot { nonTotalLabels.containsMatchIn(it) }
-        .mapNotNull { inlineAmount(it) ?: amountOnly(it) }
-        .maxOrNull()
-
     // --- location ----------------------------------------------------------
     // The store name is the first substantial line that is not an amount, a date
     // or an identifier. A long *Japanese* line near the top is usually a tagline
     // ("イタリアンワイン＆カフェレストラン"), so CJK candidates are length-capped;
     // latin names ("WHOLE FOODS MARKET") routinely run longer and are not.
+    fun hasCjk(line: String): Boolean =
+        line.any { it.code in 0x3000..0x9FFF || it.code in 0xFF00..0xFFEF }
+
+    // Logos are set in stylised faces that OCR renders as latin gibberish
+    // ("Calbe Lat" for a 西松屋 storefront). On a receipt that is otherwise
+    // Japanese the store name is written in CJK, so latin candidates are
+    // rejected outright rather than merely deprioritised.
+    val japaneseReceipt = lines.count { hasCjk(it) } >= 3
+
     val location = lines
-        .take(6)
+        .take(10)
         .firstOrNull { line ->
-            val cjk = line.any { it.code in 0x3000..0x9FFF || it.code in 0xFF00..0xFFEF }
+            val cjk = hasCjk(line)
             !isNoise(line) &&
                 amountOnly(line) == null &&
                 inlineAmount(line) == null &&
                 line.length >= 2 &&
                 (!cjk || line.length <= 14) &&
                 line.any { it.isLetter() } &&
-                !ignoredItemLabels.containsMatchIn(line)
+                !ignoredItemLabels.containsMatchIn(line) &&
+                !fieldLabel.containsMatchIn(line) &&
+                (!japaneseReceipt || cjk)
+        }
+        ?: lines.take(10).firstOrNull { line ->
+            !isNoise(line) && amountOnly(line) == null && inlineAmount(line) == null &&
+                line.length >= 2 && !fieldLabel.containsMatchIn(line)
         }
 
     // --- line items --------------------------------------------------------
-    fun cleanName(raw: String): String =
-        raw.replace(leadingItemCode, "")
-            .replace(quantityNoise, "")
-            .trim()
-            .trimEnd('-', ':', '*', '@', '・')
-            .trim()
+    /** Interleaved rows that carry no amount and must not break a column run. */
+    fun isColumnFiller(line: String): Boolean =
+        barcodeLine.matches(line) ||
+            (line.length <= 1) ||
+            (bareIdentifier.matches(line) && amountOnly(line) == null)
 
-    fun isItemName(line: String): Boolean =
+    /**
+     * A left-column row: either an item name or a summary label. Labels are kept
+     * in the run so the zip against the amount column stays aligned; they are
+     * filtered out after pairing.
+     */
+    fun isColumnText(line: String): Boolean =
         !isNoise(line) &&
             amountOnly(line) == null &&
             inlineAmount(line) == null &&
-            !ignoredItemLabels.containsMatchIn(line) &&
+            !barcodeLine.matches(line) &&
             line.any { it.isLetter() } &&
-            cleanName(line).length >= 2
+            // Summary labels ("小計", "2点") are short but DO own an amount, so
+            // they stay in the run to keep the zip aligned. A bare single
+            // character ("外", "H") is a tax mark or column header and does not.
+            line.length >= 2
 
     val inlineItems = lines.mapNotNull { line ->
         if (ignoredItemLabels.containsMatchIn(line) || isNoise(line)) return@mapNotNull null
@@ -216,20 +275,27 @@ fun parseReceiptText(text: String): ReceiptDraft {
         if (name.length < 2) null else ReceiptLineItem(name, amount)
     }
 
-    // Column layout: a run of item names immediately followed by a run of
-    // amount-only lines, paired by position.
+    // Column layout. OCR emits the whole left column as one run (item names AND
+    // summary labels such as 小計/合計, in visual order) followed by the matching
+    // run of amounts. Zip the two by position, then classify: a label row supplies
+    // the total, a non-label row is a purchased item.
     val columnItems = buildList {
         var i = 0
         while (i < lines.size) {
-            if (!isItemName(lines[i])) { i++; continue }
+            if (!isColumnText(lines[i])) { i++; continue }
 
-            val names = mutableListOf<String>()
-            while (i < lines.size && isItemName(lines[i])) {
-                names += lines[i]
-                i++
+            // Barcodes and single-character marks are interleaved with the names
+            // but own no amount, so they are skipped without ending the run.
+            val texts = mutableListOf<String>()
+            while (i < lines.size) {
+                when {
+                    isColumnText(lines[i]) -> { texts += lines[i]; i++ }
+                    isColumnFiller(lines[i]) -> i++
+                    else -> break
+                }
             }
 
-            // Skip stray non-amount lines (e.g. "人数", "3") between the columns.
+            // Skip filler that carries no amount (stray marks, counts, barcodes).
             var j = i
             while (j < lines.size && amountOnly(lines[j]) == null && j - i < 3) j++
 
@@ -239,14 +305,34 @@ fun parseReceiptText(text: String): ReceiptDraft {
                 j++
             }
 
-            if (names.size >= 2 && amounts.size >= 2) {
-                names.zip(amounts).forEach { (n, a) -> add(ReceiptLineItem(cleanName(n), a)) }
+            if (texts.size >= 2 && amounts.size >= 2) {
+                texts.zip(amounts).forEach { (t, a) ->
+                    if (totalLabels.containsMatchIn(t) &&
+                        !nonTotalLabels.containsMatchIn(t) &&
+                        !taxLabels.containsMatchIn(t)
+                    ) {
+                        columnTotals += a
+                    }
+                    if (!ignoredItemLabels.containsMatchIn(t) && !taxLabels.containsMatchIn(t)) {
+                        val n = cleanName(t)
+                        if (n.length >= 2) add(ReceiptLineItem(n, a))
+                    }
+                }
                 i = j
             }
         }
     }
 
     val lineItems = if (inlineItems.size >= columnItems.size) inlineItems else columnItems
+
+    val columnTotal = columnTotals.lastOrNull()
+
+    val total = columnTotal ?: labelledTotal() ?: lines
+        .asSequence()
+        .filterNot { nonTotalLabels.containsMatchIn(it) }
+        .mapNotNull { inlineAmount(it) ?: amountOnly(it) }
+        .maxOrNull()
+
 
     return ReceiptDraft(
         totalMinor = total,
