@@ -39,3 +39,41 @@ interaction rules, accessibility requirements, and KMP implementation guidance.
 
 ### Contributing
 I welcome contributions to this project! Please see the PR
+
+## Firebase setup
+
+Monee uses Firebase Authentication and Cloud Firestore through the Kotlin
+Multiplatform Firebase SDK.
+
+1. Create a Firebase project and enable Email/Password authentication.
+2. Create a Firestore database.
+3. Download `google-services.json` into `composeApp/`.
+4. Add `GoogleService-Info.plist` and `GoogleService-Info-Debug.plist` to the
+   iOS app target.
+5. Publish [firestore.rules](firestore.rules) with the Firebase CLI.
+6. Add Firebase Core, Auth, and Firestore to the iOS app through Swift
+   Package Manager, then call `FirebaseApp.configure()` in `iOSApp`.
+
+Build variants:
+
+```text
+Android debug:   com.andriiginting.moneyproject.debug  -> monee-debug
+Android release: com.andriiginting.moneyproject        -> monee-27768
+iOS debug:       com.andriiginting.moneyproject.MoneyProject.debug -> monee-debug
+iOS release:     com.andriiginting.moneyproject.MoneyProject       -> monee-27768
+```
+
+Android selects `composeApp/src/debug/google-services.json` for debug builds
+and `composeApp/google-services.json` for release builds. iOS selects the
+debug plist under `DEBUG` and the release plist otherwise.
+
+The data model is:
+
+```text
+users/{uid}                         -> householdId
+households/{householdId}            -> name, memberIds[]
+households/{householdId}/expenses/  -> household-owned expense documents
+```
+
+Do not ship the local repository as production auth. It remains available for
+previews and tests until the Firebase project configuration files are present.

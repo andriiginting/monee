@@ -1,0 +1,5 @@
+language = Objective-C
+headers = qrcode.h
+package = qrcodeinterop
+linkerOpts = -framework CoreImage
+# cinterop declaration shim for the native QR generator

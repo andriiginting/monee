@@ -28,7 +28,9 @@ outputs/
 
 # Firebase client configuration
 composeApp/google-services.json
+composeApp/src/debug/google-services.json
 iosApp/iosApp/GoogleService-Info.plist
+iosApp/iosApp/GoogleService-Info-Debug.plist
 
 # OS
 .DS_Store

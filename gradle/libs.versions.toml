@@ -7,6 +7,9 @@ androidx-activityCompose = "1.13.0"
 androidx-core = "1.19.0"
 compose-plugin = "1.12.0"
 kotlin = "2.4.20"
+firebase-kotlin = "2.7.0"
+serialization = "1.9.0"
+google-services = "4.4.2"
 mlkit-textRecognition = "16.0.1"
 precompose = "1.6.2"
 
@@ -15,9 +18,12 @@ androidx-activity-compose = { module = "androidx.activity:activity-compose", ver
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
 mlkit-text-recognition-japanese = { module = "com.google.mlkit:text-recognition-japanese", version.ref = "mlkit-textRecognition" }
 precompose = { module = "moe.tlaster:precompose", version.ref = "precompose" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 jetbrainsCompose = { id = "org.jetbrains.compose", version.ref = "compose-plugin" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+googleServices = { id = "com.google.gms.google-services", version.ref = "google-services" }

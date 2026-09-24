@@ -60,6 +60,7 @@ import data.ocr.formatReceiptAmount
 import data.ocr.parseReceiptText
 import data.ocr.recognizeReceiptText
 import data.ocr.rememberReceiptImagePicker
+import data.MoneeRepository
 import kotlinx.coroutines.launch
 import moe.tlaster.precompose.navigation.Navigator
 
@@ -74,6 +75,7 @@ private val ScannerBackground = Color(0xFF101512)
 @Composable
 internal fun ScannerScreen(
     navigator: Navigator,
+    repository: MoneeRepository,
 ) {
     val scope = rememberCoroutineScope()
     var step by remember { mutableStateOf(ScannerStep.Processing) }
@@ -111,6 +113,12 @@ internal fun ScannerScreen(
                 lineItems = emptyList(),
             ),
             onClose = navigator::goBack,
+            onSave = { draft ->
+                scope.launch {
+                    repository.addExpense(draft)
+                    navigator.goBack()
+                }
+            },
             onRescan = {
                 receiptDraft = null
                 step = ScannerStep.Processing
@@ -124,6 +132,7 @@ internal fun ScannerScreen(
 private fun ScannerReviewView(
     draft: ReceiptDraft,
     onClose: () -> Unit,
+    onSave: (ReceiptDraft) -> Unit,
     onRescan: () -> Unit,
 ) {
     Scaffold(
@@ -137,7 +146,7 @@ private fun ScannerReviewView(
                     contentColor = MaterialTheme.colorScheme.onBackground,
                     action = {
                         Button(
-                            onClick = onClose,
+                            onClick = { onSave(draft) },
                             shape = RoundedCornerShape(32.dp),
                         ) {
                             Text(

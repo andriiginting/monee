@@ -1,0 +1,62 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isHouseholdMember(householdId) {
+      return signedIn()
+        && request.auth.uid in get(
+          /databases/$(database)/documents/households/$(householdId)
+        ).data.memberIds;
+    }
+
+    match /users/{userId} {
+      allow read, write: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /householdInvites/{inviteCode} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && isHouseholdMember(request.resource.data.householdId)
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if signedIn()
+        && isHouseholdMember(resource.data.householdId)
+        && resource.data.createdBy == request.auth.uid;
+    }
+
+    match /households/{householdId} {
+      allow read: if isHouseholdMember(householdId);
+      allow create: if signedIn()
+        && request.auth.uid in request.resource.data.memberIds;
+      allow update: if (
+          isHouseholdMember(householdId)
+          && request.resource.data.memberIds == resource.data.memberIds
+        ) || (
+          signedIn()
+          && request.auth.uid in request.resource.data.memberIds
+          && request.resource.data.memberIds.hasAll(resource.data.memberIds)
+          && request.resource.data.memberIds.size() == resource.data.memberIds.size() + 1
+          && request.resource.data.lastJoinCode is string
+          && get(
+            /databases/$(database)/documents/householdInvites/$(request.resource.data.lastJoinCode)
+          ).data.householdId == householdId
+        );
+      allow delete: if false;
+
+      match /expenses/{expenseId} {
+        allow read: if isHouseholdMember(householdId);
+        allow create: if isHouseholdMember(householdId)
+          && request.resource.data.householdId == householdId
+          && request.resource.data.createdBy == request.auth.uid;
+        allow update: if isHouseholdMember(householdId)
+          && request.resource.data.householdId == resource.data.householdId
+          && request.resource.data.createdBy == resource.data.createdBy;
+        allow delete: if isHouseholdMember(householdId)
+          && resource.data.createdBy == request.auth.uid;
+      }
+    }
+  }
+}

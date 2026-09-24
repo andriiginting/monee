@@ -14,7 +14,7 @@ import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.PieChart
-import androidx.compose.material.icons.automirrored.outlined.ShowChart
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -135,7 +135,7 @@ private data class BottomNavigationItem(
                 AppRoute.HISTORY.route,
             ),
             BottomNavigationItem("Budget", Icons.Outlined.PieChart, AppRoute.BUDGET.route),
-            BottomNavigationItem("Insight", Icons.AutoMirrored.Outlined.ShowChart, AppRoute.INSIGHT.route),
+            BottomNavigationItem("Profile", Icons.Outlined.Person, AppRoute.HOUSEHOLD.route),
         )
     }
 }

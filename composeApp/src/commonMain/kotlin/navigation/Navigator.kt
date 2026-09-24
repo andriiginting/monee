@@ -5,7 +5,9 @@ internal enum class Navigator(val route: String) {
     HISTORY("/history"),
     BUDGET("/budget"),
     INSIGHT("/insight"),
+    HOUSEHOLD("/household"),
     SPLASH("/splash"),
+    AUTH("/auth"),
     SCANNER("/scanner"),
     PERSONALIZE_CARD("/personalize_card");
 
@@ -15,7 +17,7 @@ internal enum class Navigator(val route: String) {
                 HOME,
                 HISTORY,
                 BUDGET,
-                INSIGHT
+                HOUSEHOLD
             )
         }
     }

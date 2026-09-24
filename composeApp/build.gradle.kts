@@ -9,6 +9,14 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.kotlinSerialization)
+}
+
+if (
+    file("google-services.json").exists() ||
+    file("src/debug/google-services.json").exists()
+) {
+    apply(plugin = "com.google.gms.google-services")
 }
 
 kotlin {
@@ -23,6 +31,14 @@ kotlin {
         iosArm64(),
         iosSimulatorArm64()
     ).forEach { iosTarget ->
+        iosTarget.compilations.getByName("main") {
+            cinterops {
+                create("qrcode") {
+                    defFile(project.file("src/nativeInterop/cinterop/qrcode.def"))
+                    compilerOpts("-I${project.file("src/nativeInterop/cinterop").absolutePath}")
+                }
+            }
+        }
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
@@ -35,6 +51,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.core.ktx)
             implementation(libs.mlkit.text.recognition.japanese)
+            implementation("com.google.zxing:core:3.3.3")
         }
         commonMain.dependencies {
             implementation("org.jetbrains.compose.runtime:runtime:$composeVersion")
@@ -47,6 +64,9 @@ kotlin {
             implementation("org.jetbrains.compose.ui:ui-tooling-preview:$composeVersion")
 
             implementation(libs.precompose)
+            implementation(libs.kotlinx.serialization.json)
+            implementation("dev.gitlive:firebase-auth:${libs.versions.firebase.kotlin.get()}")
+            implementation("dev.gitlive:firebase-firestore:${libs.versions.firebase.kotlin.get()}")
         }
     }
 }
@@ -72,6 +92,10 @@ android {
         }
     }
     buildTypes {
+        getByName("debug") {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         getByName("release") {
             isMinifyEnabled = false
         }

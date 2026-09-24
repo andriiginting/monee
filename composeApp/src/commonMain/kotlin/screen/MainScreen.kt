@@ -10,15 +10,21 @@ import androidx.compose.ui.Modifier
 import moe.tlaster.precompose.navigation.NavHost
 import moe.tlaster.precompose.navigation.Navigator as PrecomposeNavigator
 import moe.tlaster.precompose.navigation.transition.NavTransition
+import data.MoneeRepository
 import navigation.Navigator as AppRoute
+import screen.auth.AuthScreen
 import screen.history.HistoryScreen
 import screen.home.HomeScreen
+import screen.household.HouseholdScreen
 import screen.personalizecard.PersonalizeCardScreen
 import screen.scanner.ScannerScreen
 
 @Composable
 internal fun MainHostNav(
     navigator: PrecomposeNavigator,
+    repository: MoneeRepository,
+    isDarkTheme: Boolean,
+    onThemeToggle: () -> Unit,
 ) {
     NavHost(
         navigator = navigator,
@@ -26,23 +32,32 @@ internal fun MainHostNav(
         initialRoute = AppRoute.SPLASH.route,
     ) {
         scene(route = AppRoute.HOME.route) {
-            HomeScreen(navigator)
+            HomeScreen(navigator, repository)
         }
 
         scene(route = AppRoute.HISTORY.route) {
-            HistoryScreen(navigator)
+            HistoryScreen(navigator, repository)
         }
 
         scene(route = AppRoute.BUDGET.route) {
             PlaceholderScreen("Budget")
         }
 
-        scene(route = AppRoute.INSIGHT.route) {
-            PlaceholderScreen("Insight")
+        scene(route = AppRoute.HOUSEHOLD.route) {
+            HouseholdScreen(repository)
         }
 
         scene(route = AppRoute.SPLASH.route) {
-            SplashScreen(navigator)
+            SplashScreen(navigator, repository)
+        }
+
+        scene(route = AppRoute.AUTH.route) {
+            AuthScreen(
+                navigator = navigator,
+                repository = repository,
+                isDarkTheme = isDarkTheme,
+                onThemeToggle = onThemeToggle,
+            )
         }
 
         scene(route = AppRoute.PERSONALIZE_CARD.route) {
@@ -50,7 +65,7 @@ internal fun MainHostNav(
         }
 
         scene(route = AppRoute.SCANNER.route) {
-            ScannerScreen(navigator = navigator)
+            ScannerScreen(navigator = navigator, repository = repository)
         }
     }
 }

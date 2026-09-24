@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import component.BottomBarView
 import component.header.SyncStatus
 import component.header.TopHeaderView
+import data.MoneeStore
 import moe.tlaster.precompose.PreComposeApp
 import moe.tlaster.precompose.navigation.rememberNavigator
 import androidx.compose.ui.tooling.preview.Preview
@@ -27,7 +28,9 @@ import style.MoneyAppTheme
 @Preview
 fun App() {
     PreComposeApp {
+        val repository = MoneeStore.repository
         val systemDarkTheme = isSystemInDarkTheme()
+
         var isDarkTheme by remember { mutableStateOf(systemDarkTheme) }
 
         MoneyAppTheme(darkTheme = isDarkTheme) {
@@ -49,7 +52,8 @@ fun App() {
                         modifier = Modifier,
                         topBar = {
                             TopHeaderView(
-                                householdInitials = "AG",
+                                householdInitials = repository.session.collectAsState(null).value
+                                    ?.user?.displayName ?: "M",
                                 isDarkTheme = isDarkTheme,
                                 syncStatus = SyncStatus.Synced,
                                 onThemeToggle = { isDarkTheme = !isDarkTheme },
@@ -67,12 +71,22 @@ fun App() {
                         BoxWithConstraints(
                             modifier = Modifier.fillMaxSize().padding(innerPadding)
                         ) {
-                            MainHostNav(navigator = navigator)
+                            MainHostNav(
+                                navigator = navigator,
+                                repository = repository,
+                                isDarkTheme = isDarkTheme,
+                                onThemeToggle = { isDarkTheme = !isDarkTheme },
+                            )
                         }
                     }
                 } else {
                     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                        MainHostNav(navigator = navigator)
+                        MainHostNav(
+                            navigator = navigator,
+                            repository = repository,
+                            isDarkTheme = isDarkTheme,
+                            onThemeToggle = { isDarkTheme = !isDarkTheme },
+                        )
                     }
                 }
             }
