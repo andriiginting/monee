@@ -51,6 +51,9 @@ data class Expense(
     val date: String?,
     val notes: String? = null,
     val createdAtMillis: Long = 0L,
+    // Optional so expenses posted before these fields existed still decode.
+    val time: String? = null,
+    val account: String? = null,
 )
 
 data class MoneeSession(
@@ -149,6 +152,8 @@ class InMemoryMoneeRepository : MoneeRepository {
             merchant = draft.location ?: "Unknown merchant",
             category = draft.category,
             date = draft.date,
+            time = draft.time,
+            account = draft.account,
             createdAtMillis = kotlin.time.Clock.System.now().toEpochMilliseconds(),
         )
         _expenses.update { current -> current + expense }
@@ -289,6 +294,8 @@ class FirebaseMoneeRepository(
             merchant = draft.location ?: "Unknown merchant",
             category = draft.category,
             date = draft.date,
+            time = draft.time,
+            account = draft.account,
             createdAtMillis = kotlin.time.Clock.System.now().toEpochMilliseconds(),
         )
         firestore.collection("households")
